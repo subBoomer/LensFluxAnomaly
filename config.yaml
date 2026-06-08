@@ -1,0 +1,48 @@
+project: lcdm_lensing_rfold
+version: 2.0
+
+cosmology:
+  h0: 67.4
+  omega_m: 0.315
+  omega_lambda: 0.685
+  reference: Planck2018
+  tunable: false
+
+simulation:
+  n_systems: 2000
+  checkpoint_interval: 100
+  seed: 42
+
+population:
+  z_l_source: collett2015
+  z_s_min: 1.0
+  z_s_max: 3.0
+  sigma_v_mu: 250
+  sigma_v_sigma: 0.15
+  q_mean: 0.8
+  q_sigma: 0.15
+  q_min: 0.3
+  q_max: 1.0
+  gamma_ext_scale: 0.05
+
+substructure:
+  f_sub_dmo: 0.005
+  f_sub_reference: Springel2008_Fiacconi2016
+  mass_slope: -1.9
+  mass_min: 1.0e6
+  mass_max: 1.0e10
+  lambda_dmo: 50
+  concentration_model: duffy08
+
+selection:
+  survey: CLASS
+  beta_magnification: 2.3
+  flux_limit_mjy: 1.0
+  beam_arcsec: 0.25
+  quad_detect_prob: 0.7
+
+noise:
+  radio_snr: 50
+
+comparison:
+  n_bootstrap: 1000
