@@ -43,7 +43,7 @@ def _solve_and_compute(macro, bx, by, source_flux, snr, rng):
         return None, None
     if not passes_selection(
         full_result['theta_x'], full_result['theta_y'],
-        full_result['mu'], source_flux,
+        full_result['mu'], source_flux, rng,
     ):
         return None, None
     F_true = full_result['mu'] * source_flux
@@ -87,7 +87,7 @@ def _process_cell(args):
             theta_x = macro_result['theta_x']
             theta_y = macro_result['theta_y']
             mu = macro_result['mu']
-            if not passes_selection(theta_x, theta_y, mu, theta['source_flux']):
+            if not passes_selection(theta_x, theta_y, mu, theta['source_flux'], rng):
                 continue
             F_true = mu * theta['source_flux']
             F_obs = RadioNoise().apply(np.abs(F_true), rng)

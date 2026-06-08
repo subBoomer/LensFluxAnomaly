@@ -23,8 +23,9 @@ def _rho_crit(z):
 
 
 class SubhaloPopulation:
-    def __init__(self, f_sub=None):
+    def __init__(self, f_sub=None, concentration_model=None):
         self.f_sub = F_SUB_DMO if f_sub is None else f_sub
+        self.concentration_model = CONCENTRATION_MODEL if concentration_model is None else concentration_model
         self.lambda_dmo = LAMBDA_DMO
 
     def _sample_mass(self, rng):
@@ -49,7 +50,7 @@ class SubhaloPopulation:
             x = r * np.cos(angle)
             y = r * np.sin(angle)
             try:
-                c = concentration(m_h, '200c', z_l, model=CONCENTRATION_MODEL)
+                c = concentration(m_h, '200c', z_l, model=self.concentration_model)
             except Exception:
                 c = 10.0
             rho_c = _rho_crit(z_l)

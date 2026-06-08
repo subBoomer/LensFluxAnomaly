@@ -1,35 +1,58 @@
+---
+tags:
+  - data
+  - catalog
+  - lensfluxanomaly
+---
 # Data Sources
 
-## Compiled Systems (15 total)
+## Radio Sample (8 systems)
+CLASS/MG/VLA surveys, 5-8.5 GHz, resolved flux ratios.
 
-### Radio Systems (7)
-| Name | Survey | Band | z_l | z_s | Reference |
-|------|--------|------|-----|-----|-----------|
-| MG0414+0534 | MG | 8.4 GHz | 0.96 | 2.64 | Katz+1997, Hewitt+1992 |
-| B0128+437 | CLASS | 5 GHz | 0.74 | 3.13 | Phillips+2000 |
-| B0712+472 | CLASS | 5 GHz | 0.41 | 1.34 | King+1998 |
-| B1422+231 | CLASS | 8.4 GHz | 0.34 | 3.62 | Patnaik+1992 |
-| B1608+656 | CLASS | 8.4 GHz | 0.63 | 1.39 | Myers+1995 |
-| B1933+503 | CLASS | 8.4 GHz | 0.76 | 2.62 | Sykes+1998 |
-| B2045+265 | CLASS | 8.5 GHz | 0.87 | 1.28 | Fassnacht+1999 |
+See `data/radio_quads.py` for full details.
 
-### Optical Systems (8, CASTLES F814W)
-| Name | Band | Reference |
-|------|------|-----------|
-| HE0230-2130 | F814W | Pooley+2007 |
-| MG0414+0534 | F814W | Pooley+2007 |
-| RXJ0911+0551 | F814W | Pooley+2007 |
-| SDSSJ0924+0219 | F814W | Pooley+2007 |
-| PG1115+080 | F814W | Pooley+2007 |
-| RXJ1131-1231 | F814W | Pooley+2007 |
-| H1413+117 | F814W | Pooley+2007 |
-| B1422+231 | F814W | Pooley+2007 |
-| WFI2033-4723 | F814W | Pooley+2007 |
-| Q2237+0305 | F814W | Pooley+2007 |
+| System | Survey | Frequency | References |
+|--------|--------|-----------|------------|
+| MG0414+0534 | MG | 8.4 GHz | Katz+1997, Hewitt+1992 |
+| B0128+437 | CLASS | 5 GHz | Phillips+2000 |
+| B0712+472 | CLASS | 5 GHz | King+1998, Jackson+1998 |
+| B1422+231 | CLASS | 8.4 GHz | Patnaik+1992 |
+| B1555+375 | CLASS | 5 GHz | Marlow+2001 |
+| B1608+656 | CLASS | 8.4 GHz | Myers+1995, King+1998 |
+| B1933+503 | CLASS | 8.4 GHz | Sykes+1998 |
+| B2045+265 | CLASS | 8.5 GHz | Fassnacht+1999 |
 
-## Data Format
-Each system record contains: image positions (x, y in arcsec), fluxes (mJy for radio, 10^(-0.4*mag) for optical), band, survey, and where available lens redshifts and parities.
+All have published parity from lens models. See `radio_quads.py` `parity_source` field for provenance.
 
-## Data Files
-- `data/radio_quads.py` — curated radio quad catalog
-- `data/curated_quads.py` — optical quad catalog from Pooley+2007 / CASTLES
+## Optical Sample (13 systems)
+CASTLES HST WFPC2 F814W imaging + literature.
+
+See `data/curated_quads.py` for full details.
+
+| System | Survey | Band | References |
+|--------|--------|------|------------|
+| HE0230-2130 | CASTLES | F814W | Pooley+2007 |
+| MG0414+0534 | CASTLES | F814W | Pooley+2007 |
+| RXJ0911+0551 | CASTLES | F814W | Pooley+2007 |
+| SDSSJ0924+0219 | CASTLES | F814W | Pooley+2007 |
+| PG1115+080 | CASTLES | F814W | Pooley+2007 |
+| RXJ1131-1231 | CASTLES | F814W | Pooley+2007 |
+| H1413+117 | CASTLES | F814W | Pooley+2007 |
+| B1422+231 | CASTLES | F814W | Pooley+2007 |
+| WFI2033-4723 | CASTLES | F814W | Pooley+2007 |
+| Q2237+0305 | CASTLES | F814W | Pooley+2007 |
+| HE0435-1223 | CASTLES | F814W | CASTLES |
+| SDSSJ1138+0314 | CASTLES | F814W | CASTLES |
+| HS0810+2554 | CASTLES | F814W | CASTLES |
+
+Optical entries have **no parity** — only positions and Vega magnitudes.
+
+## Duplicates
+MG0414+0534 and B1422+231 appear in both samples. The radio version is primary (has parity). The optical version is used only for microlensing cross-check.
+
+## Sample Completeness
+The CLASS radio quad sample is likely **complete** at 5-8 GHz. A thorough search of CLASS/JVAS (Browne+2003, Myers+2003, King+1998) identified 7 radio quads. B1555+375 was activated as the 8th. No other simple radio quads with resolved flux ratios exist.
+
+Previous studies: Jackson+2015 (4 optical quads at VLA), Jackson+2024 (70 lens survey, but excludes quads). The Jackson+2015 data covers HS0810+2554, RXJ0911+0551, HE0435-1223, SDSSJ0924+0219 (total flux only, not resolved per-image).
+
+See [[03_Catalog_Table]] for the consolidated catalog.

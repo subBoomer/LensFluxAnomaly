@@ -1,28 +1,39 @@
+---
+tags:
+  - project-overview
+  - lensfluxanomaly
+---
 # Project Overview
 
 ## Objective
-Test whether observed flux-ratio asymmetries in Hubble quad gravitational lenses deviate from a minimal Lambda-CDM-consistent expectation.
+Test whether observed flux-ratio asymmetries in quad gravitational lenses deviate from a minimal ΛCDM-consistent expectation using model-light statistics.
 
 ## Hypothesis
-Lambda-CDM predicts a specific level of flux-ratio anomalies from dark matter substructure along the line of sight. If the observed anomalies are stronger than predicted, this could indicate:
-- A higher substructure abundance than expected
-- Additional physics beyond the standard model
-- Systematic biases in the observational data
+ΛCDM predicts a specific level of flux-ratio anomalies from dark matter substructure + line-of-sight structure. If observed anomalies exceed predictions, this could indicate:
+- Higher substructure abundance than DMO models predict
+- Additional physics beyond minimal ΛCDM
+- Systematic biases in the observational data (selection, microlensing)
 
-## Observable Statistic
-R_min = min_{|r_i - r_j| < delta_r} |F_i - F_j| / (F_i + F_j)
+## Statistics
+Three complementary statistics, each with different assumptions and sensitivities:
 
-This is a model-light statistic requiring no per-system lens fitting — only image positions and fluxes relative to the lens centroid.
+| Statistic | Target | Data Requirement |
+|-----------|--------|-----------------|
+| R_min | Radial pairing, model-light | Positions + fluxes, no lens model |
+| R_fold | Fold pair (two minima) | Positions + fluxes + parity |
+| R_cusp | Three closest images | Positions + fluxes + parity |
 
 ## Constraints
-- No per-system lens modeling
-- No qualitative classification
-- Reproducible offline computation
-- Public data only
+- No per-system lens fitting
+- Public data only (CLASS, CASTES, literature)
+- Reproducible via seeded random number generation
 
 ## Current Status
-- 15 quad lens systems compiled (7 radio + 8 optical)
-- R_min: KS p=0.004, AD sig<0.001, tail ratio T=8.0
-- Anomaly detected at high significance in the combined sample
-- Optical sample drives the signal (AD sig<0.001, T=12.0)
-- Radio sample alone borderline (AD sig=0.078, T=6.8)
+- **19 unique systems** compiled (8 radio + 13 optical, 2 duplicates)
+- **R_min**: AD sig < 0.001 across combined sample, T = 7.6
+- **R_fold** (primary, 8 radio): AD p = 0.001, 2.6× mean excess
+- **R_cusp**: consistent with ΛCDM (AD p = 0.007, anti-significant)
+- **Lenstronomy validation**: strengthens all signals
+- **WDM**: fails to rescue the anomaly (makes it worse)
+
+See [[08_Results]] for full numbers.

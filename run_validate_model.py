@@ -5,6 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
 from src.catalog_utils import build_unified_catalog
 from src.compute_rmin import compute_rmin
+from src.statistic import compute_rfold, compute_cusp_statistic
 from src.perturbation_model import SimplePerturbationModel
 from src.population import LensPopulation
 from src.lens_model import MacroLens
@@ -47,7 +48,7 @@ def simulate_one_lenstronomy(seed, f_sub):
         return None
     if not passes_selection(
         macro_result['theta_x'], macro_result['theta_y'],
-        macro_result['mu'], theta['source_flux'],
+        macro_result['mu'], theta['source_flux'], rng,
     ):
         return None
     subhalos = sub_pop.realise(theta_E, theta['z_l'], rng)
@@ -55,11 +56,15 @@ def simulate_one_lenstronomy(seed, f_sub):
     full_result = macro.solve(bx, by, num_random=2, search_window=2)
     if full_result is None or full_result['n_images'] < 4:
         return None
-    F_true = np.abs(full_result['mu']) * theta['source_flux']
+    mu = full_result['mu']
+    F_true = np.abs(mu) * theta['source_flux']
     F_obs = radio_noise.apply(F_true, rng)
     x = full_result['theta_x']
     y = full_result['theta_y']
-    return x, y, F_obs
+    parity = np.sign(mu).astype(float)
+    rfold_val = compute_rfold(x, y, parity, np.abs(F_obs))
+    rcusp_val = compute_cusp_statistic(x, y, parity, np.abs(F_obs))
+    return x, y, F_obs, rfold_val, rcusp_val
 
 
 def simulate_batch_lenstronomy(seeds, f_sub):
@@ -117,13 +122,23 @@ def main():
     print('=' * 60)
 
     systems = build_unified_catalog(include_radio=True, include_optical=True, deduplicate=True)
-    obs_results = []
+    obs_results, obs_rfold_list, obs_rcusp_list = [], [], []
     for s in systems:
         rmin = compute_rmin(s['x_arcsec'], s['y_arcsec'], s['fluxes'], args.delta_r)
         if rmin is not None:
             obs_results.append(rmin)
+        if s.get('parity') is not None:
+            p = np.array(s['parity'], dtype=float)
+            rf = compute_rfold(np.array(s['x_arcsec']), np.array(s['y_arcsec']), p, np.array(s['fluxes']))
+            rc = compute_cusp_statistic(np.array(s['x_arcsec']), np.array(s['y_arcsec']), p, np.array(s['fluxes']))
+            if rf >= 0:
+                obs_rfold_list.append(rf)
+            if rc >= 0:
+                obs_rcusp_list.append(rc)
     obs_arr = np.array(obs_results)
-    print(f'\nObserved catalog: {len(systems)} systems, {len(obs_arr)} valid R_min')
+    obs_rfold_arr = np.array(obs_rfold_list)
+    obs_rcusp_arr = np.array(obs_rcusp_list)
+    print(f'\nObserved catalog: {len(systems)} systems, {len(obs_arr)} valid R_min, {len(obs_rfold_arr)} valid R_fold, {len(obs_rcusp_arr)} valid R_cusp')
 
     print(f'\nGenerating {args.n_sim} lenstronomy realisations (f_sub={args.f_sub})...')
     t0 = time.perf_counter()
@@ -152,13 +167,20 @@ def main():
                 print(f'  {i+1}/{args.n_sim} ({len(lens_results)} quads)', flush=True)
     dt = time.perf_counter() - t0
 
-    lens_rmin = []
-    for x, y, F in lens_results:
+    lens_rmin, lens_rfold, lens_rcusp = [], [], []
+    for result in lens_results:
+        x, y, F, rf, rc = result
         r = compute_rmin(x, y, F, args.delta_r)
         if r is not None:
             lens_rmin.append(r)
+        if rf >= 0:
+            lens_rfold.append(rf)
+        if rc >= 0:
+            lens_rcusp.append(rc)
     lens_arr = np.array(lens_rmin)
-    print(f'  Done in {dt:.1f}s: {len(lens_results)} quads, {len(lens_arr)} valid R_min')
+    lens_rfold = np.array(lens_rfold)
+    lens_rcusp = np.array(lens_rcusp)
+    print(f'  Done in {dt:.1f}s: {len(lens_results)} quads, {len(lens_arr)} valid R_min, {len(lens_rfold)} valid R_fold, {len(lens_rcusp)} valid R_cusp')
 
     print(f'\nGenerating {args.n_perturb} simple perturbation model realisations...')
     t0 = time.perf_counter()
@@ -170,9 +192,13 @@ def main():
     print('Comparisons')
     print('=' * 60)
 
-    c1 = run_comparison(obs_arr, lens_arr, '1. Observed vs lenstronomy (SIE+TNFW+LOS)')
-    c2 = run_comparison(obs_arr, sim_arr, '2. Observed vs simple perturbation')
-    c3 = run_comparison(lens_arr, sim_arr, '3. Lenstronomy vs simple perturbation')
+    c1 = run_comparison(obs_arr, lens_arr, '1. R_min: Observed vs lenstronomy (SIE+TNFW+LOS)')
+    c2 = run_comparison(obs_arr, sim_arr, '2. R_min: Observed vs simple perturbation')
+    c3 = run_comparison(lens_arr, sim_arr, '3. R_min: Lenstronomy vs simple perturbation')
+    if len(obs_rfold_arr) > 0 and len(lens_rfold) > 0:
+        c4 = run_comparison(obs_rfold_arr, lens_rfold, '4. R_fold: Observed vs lenstronomy')
+    if len(obs_rcusp_arr) > 0 and len(lens_rcusp) > 0:
+        c5 = run_comparison(obs_rcusp_arr, lens_rcusp, '5. R_cusp: Observed vs lenstronomy')
 
     try:
         import matplotlib
@@ -205,7 +231,11 @@ def main():
     result_path = Path('outputs/phase_b_validation.npz')
     np.savez(result_path,
              obs_rmin=obs_arr,
+             obs_rfold=obs_rfold_arr,
+             obs_rcusp=obs_rcusp_arr,
              lenstronomy_rmin=lens_arr,
+             lenstronomy_rfold=lens_rfold,
+             lenstronomy_rcusp=lens_rcusp,
              simple_rmin=sim_arr,
              )
     print(f'Results saved: {result_path}')

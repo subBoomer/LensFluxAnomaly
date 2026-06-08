@@ -72,8 +72,7 @@ RADIO_QUAD_CATALOG = [
         "parity": [-1, -1, 1, 1],
         "reference": "Marlow+2001; 5 GHz MERLIN",
         "band": "radio_5GHz",
-        "parity_source": "Marlow+2001 (AJ 121, 619) lens model — A,B saddles, C,D minima",
-        "placeholder": True,
+        "parity_source": "Marlow+1999 (AJ 118, 654) SIE model — A,B saddles, C,D minima; SHARP-II (2016) confirms disc perturbation",
     },
     {
         "name": "B1608+656",

@@ -1,4 +1,4 @@
-import sys
+import sys, zlib
 import numpy as np
 import yaml
 from pathlib import Path
@@ -99,7 +99,7 @@ def run_config(samples, config, rng, name=''):
 
         if config['selection']:
             if not passes_selection(theta_x, theta_y, mu,
-                                    theta['source_flux']):
+                                    theta['source_flux'], rng):
                 continue
 
         F_true = mu * theta['source_flux']
@@ -158,7 +158,7 @@ def run_all_ablations(n_total, outputs_dir):
             R_cusp_sim = data['R_cusp']
             print(f' (cached, N={len(R_sim)})')
         else:
-            rng = np.random.default_rng(RNG_SEED + hash(name) % 2**31)
+            rng = np.random.default_rng(RNG_SEED + zlib.crc32(name.encode()) % 2**31)
             R_sim, R_cusp_sim = run_config(samples, cfg, rng, name=name)
             np.savez(ckpt_path, R_fold=R_sim, R_cusp=R_cusp_sim)
             print(f' (N={len(R_sim)})')

@@ -138,7 +138,7 @@ def main():
             R_sim = np.load(ckpt)
             print(f'  f_sub={fs:.3f} (cached, N={len(R_sim)})')
         else:
-            cfg_run = {**base_cfg, 'f_sub': fs, 'seed_base': 42 + int(fs * 1000)}
+            cfg_run = {**base_cfg, 'f_sub': fs, 'seed_base': 42 + int(round(fs * 1000))}
             t0 = time.perf_counter()
             R_sim = run_config(samples, cfg_run, n_workers=n_workers)
             np.save(ckpt, R_sim)

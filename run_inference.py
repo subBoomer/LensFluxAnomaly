@@ -33,7 +33,7 @@ def sample_source_in_caustic(rng, theta_E, q, macro, max_attempts=30):
 def simulate_one(seed, params):
     rng = np.random.default_rng(seed)
     pop = LensPopulation(rng)
-    sub_pop = SubhaloPopulation(f_sub=params.get('f_sub'))
+    sub_pop = SubhaloPopulation(f_sub=params.get('f_sub'), concentration_model=params.get('conc_model'))
     los_pop = LOSPopulation()
     radio_noise = RadioNoise()
     radio_noise.snr = params['radio_snr']
@@ -52,7 +52,7 @@ def simulate_one(seed, params):
         return None, None, 0, 0
     if not passes_selection(
         macro_result['theta_x'], macro_result['theta_y'],
-        macro_result['mu'], theta['source_flux'],
+        macro_result['mu'], theta['source_flux'], rng,
     ):
         return None, None, 1, 0
     subhalos = sub_pop.realise(theta_E, theta['z_l'], rng)
@@ -116,6 +116,7 @@ def main():
     parser.add_argument('--workers', type=int, default=None, help='Number of worker processes (default: CPU count)')
     parser.add_argument('--quick', action='store_true', help='Fast dev mode: 50 draws, force re-run')
     parser.add_argument('--snr', type=float, default=None, help='Override radio_snr from config')
+    parser.add_argument('--conc-model', type=str, default=None, help='Override concentration model (duffy08, ishiyama21, diemer15)')
     args = parser.parse_args()
 
     config_path = Path(__file__).parent / 'config.yaml'
@@ -163,9 +164,11 @@ def main():
         print('Inference already completed. Use --force to re-run.')
         return
 
+    conc_model = args.conc_model or config['substructure'].get('concentration_model', 'duffy08')
     params = {
         'radio_snr': config['noise']['radio_snr'],
         'f_sub': config['substructure']['f_sub_dmo'],
+        'conc_model': conc_model,
     }
 
     n_quad = 0
@@ -224,7 +227,7 @@ def main():
             n_quad += 1
             if not passes_selection(
                 macro_result['theta_x'], macro_result['theta_y'],
-                macro_result['mu'], theta['source_flux'],
+                macro_result['mu'], theta['source_flux'], rng,
             ):
                 continue
             n_selected += 1

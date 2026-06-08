@@ -37,27 +37,18 @@ for snr in [20, 50, 100]:
 
 print()
 
-# Optional: concentration model test
 print('=== Concentration model ===')
 for model in ['duffy08', 'ishiyama21', 'diemer15']:
     ckpt = outputs_dir / f'systest_conc_{model}.npz'
     if ckpt.exists():
         R_sim = np.load(ckpt)['R_sim']
     else:
-        # modify substructure.py CONCENTRATION_MODEL
-        mod_path = Path(__file__).parent / 'src' / 'substructure.py'
-        orig = mod_path.read_text(encoding='utf-8')
-        mod = orig.replace("CONCENTRATION_MODEL = 'duffy08'", f"CONCENTRATION_MODEL = '{model}'")
-        mod_path.write_text(mod, encoding='utf-8')
-        try:
-            r = subprocess.run([
-                sys.executable, 'run_inference.py',
-                '--n-systems', '500', '--force', '--parallel'
-            ], capture_output=True, text=True, timeout=300)
-            print(r.stdout.strip().split('\n')[-4:])
-            R_sim = np.load(outputs_dir / 'inference_result.npz')['R_sim']
-            np.savez(ckpt, R_sim=R_sim)
-        finally:
-            mod_path.write_text(orig, encoding='utf-8')
+        r = subprocess.run([
+            sys.executable, 'run_inference.py',
+            '--n-systems', '500', '--force', '--parallel', '--conc-model', model
+        ], capture_output=True, text=True, timeout=300)
+        print(r.stdout.strip().split('\n')[-4:])
+        R_sim = np.load(outputs_dir / 'inference_result.npz')['R_sim']
+        np.savez(ckpt, R_sim=R_sim)
     res = compare(R_obs, R_sim, n_bootstrap=1000)
     print(f'{model:20s} {len(R_sim):>6d} {res["ks_p_value"]:>9.4f} {res["wasserstein_distance"]:>9.4f}')

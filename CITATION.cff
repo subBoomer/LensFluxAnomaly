@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+authors:
+  - family-names: "Kiselchuk"
+    given-names: "Timur"
+title: "LensFluxAnomaly: Forward-modeling analysis of flux-ratio anomalies in quad gravitational lenses"
+version: 1.0.0
+date-released: 2026-06
+license: BSD-3-Clause
+repository-code: "https://github.com/subBoomer/LensFluxAnomaly"
+keywords:
+  - gravitational lensing
+  - dark matter substructure
+  - flux-ratio anomalies
+  - strong lensing

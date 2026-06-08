@@ -1,26 +1,26 @@
+---
+tags:
+  - analysis
+  - methods
+  - lensfluxanomaly
+---
 # Analysis Methods
 
-## Primary: Anderson-Darling Test
-The Anderson-Darling test is the preferred comparison statistic as specified by the original project design. It is more sensitive than KS to tail differences, which is where the anomaly signal manifests.
+See [[06_Statistical_Methods]] for the statistical testing framework.
 
-## Secondary: KS Test
-Two-sample KS test provides a complementary comparison. Less sensitive to tail differences but more widely understood.
+## Entry-Point Scripts
+| Script | Function | Approx Time |
+|--------|----------|-------------|
+| `run_rmin_analysis.py` | R_min for all/radio/optical | ~30 sec |
+| `run_rfold_rcusp_analysis.py` | R_fold/R_cusp for radio | ~30 sec |
+| `run_phase_f.py` | WDM comparison | ~3 min |
+| `run_validate_model.py --quick` | lenstronomy cross-validation | ~30 sec |
+| `run_validate_model.py` | Full lenstronomy (2000) | ~5-10 min |
+| `run_jackknife.py` | Jackknife R_min | ~2 min |
+| `run_jackknife_rfrc.py` | Jackknife R_fold/R_cusp | ~2 min |
+| `run_outlier_analysis.py` | Individual system diagnostics | ~30 sec |
 
-## Tail Ratio
-T = P_obs(R_min > 0.2) / P_sim(R_min > 0.2)
+All scripts use `pathlib.Path(__file__).parent` for path resolution and can be run from any working directory.
 
-The threshold of R_min > 0.2 was specified in the original project design as the definition of the "high tail." This quantifies excess anomaly frequency in the observed sample relative to LCDM.
-
-## Sub-Sample Analysis
-Results are computed separately for:
-- **Radio-only**: 7 CLASS/MG radio systems (redshifts known, no microlensing)
-- **Optical-only**: 10 CASTLES F814W systems (microlensing possible)
-- **Combined**: 15 unique systems (deduplicated)
-
-## Comparison with Full Ray-Tracing
-The R_min analysis is complemented by a separate analysis using full lenstronomy ray-tracing with R_fold and R_cusp statistics (`run_inference.py`), providing a cross-check of the anomaly signal.
-
-## Code
-- `run_rmin_analysis.py` — main entry point with --mode flag
-- `run_inference.py` — lenstronomy-based cross-check
-- `run_decomposition.py` — diagnostic table for f_sub sensitivity
+## Verification
+The four critical bugs (global rng, file mutation, hash seeding, float rounding) have been fixed as of the final analysis run.

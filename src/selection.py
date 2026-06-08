@@ -6,7 +6,9 @@ BEAM_ARCSEC = 0.25
 QUAD_DETECT_PROB = 0.7
 
 
-def passes_selection(theta_x, theta_y, mu, F_source):
+def passes_selection(theta_x, theta_y, mu, F_source, rng=None):
+    if rng is None:
+        rng = np.random.default_rng()
     if len(theta_x) < 4:
         return False
     mu_tot = np.sum(np.abs(mu))
@@ -21,9 +23,9 @@ def passes_selection(theta_x, theta_y, mu, F_source):
             min_sep = min(min_sep, sep)
     if n == 4 and min_sep < BEAM_ARCSEC:
         p_resolution = 1.0 / (1.0 + np.exp(-(min_sep - BEAM_ARCSEC) / 0.05))
-        if np.random.uniform() > p_resolution:
+        if rng.uniform() > p_resolution:
             return False
-    return np.random.uniform() < QUAD_DETECT_PROB
+    return rng.uniform() < QUAD_DETECT_PROB
 
 
 def selection_weight(theta_x, theta_y, mu, F_source):
