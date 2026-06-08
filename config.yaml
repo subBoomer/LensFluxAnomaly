@@ -9,7 +9,7 @@ cosmology:
   tunable: false
 
 simulation:
-  n_systems: 2000
+  n_systems: 5000
   checkpoint_interval: 100
   seed: 42
 
@@ -29,8 +29,8 @@ substructure:
   f_sub_dmo: 0.005
   f_sub_reference: Springel2008_Fiacconi2016
   mass_slope: -1.9
-  mass_min: 1.0e6
-  mass_max: 1.0e10
+  mass_min: 1000000.0
+  mass_max: 10000000000.0
   lambda_dmo: 50
   concentration_model: duffy08
 

@@ -71,8 +71,17 @@ class LOSPopulation:
         pass
 
     def realise(self, z_l, z_s, rng):
-        return {
-            'kappa': 0.0,
-            'gamma_1': 0.0,
-            'gamma_2': 0.0,
-        }
+        D_C_s = cos.comovingDistance(0, z_s)
+        D_C_ref = cos.comovingDistance(0, 2.0)
+        z_factor = (1.0 + z_l) / 1.5
+        sigma_kappa = 0.030 * np.sqrt(D_C_s / D_C_ref) * z_factor
+
+        sigma_gamma = sigma_kappa * 0.8
+        corr = 0.4
+        cov = np.array([
+            [sigma_kappa ** 2, corr * sigma_kappa * sigma_gamma, 0.0],
+            [corr * sigma_kappa * sigma_gamma, sigma_gamma ** 2, 0.0],
+            [0.0, 0.0, sigma_gamma ** 2],
+        ])
+        kappa, gamma_1, gamma_2 = rng.multivariate_normal(np.zeros(3), cov)
+        return {'kappa': kappa, 'gamma_1': gamma_1, 'gamma_2': gamma_2}

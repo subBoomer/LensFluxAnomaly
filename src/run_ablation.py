@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.config import validate as validate_config
 from src.population import LensPopulation
 from src.lens_model import MacroLens
 from src.substructure import SubhaloPopulation, LOSPopulation
@@ -21,7 +22,7 @@ CONFIGS = [
     {"name": "macro_subhalos",     "substructure": True,  "los": False, "selection": False, "noise": False},
     {"name": "macro_sub_los",      "substructure": True,  "los": True,  "selection": False, "noise": False},
     {"name": "macro_sub_sel",      "substructure": True,  "los": False, "selection": True,  "noise": False},
-    {"name": "full",               "substructure": True,  "los": False, "selection": True,  "noise": True},
+    {"name": "full",               "substructure": True,  "los": True,  "selection": True,  "noise": True},
 ]
 
 
@@ -79,7 +80,8 @@ def run_config(samples, config, rng, name=''):
         )
 
         if config['los']:
-            _ = los_pop.realise(theta['z_l'], theta['z_s'], rng)
+            los_kwargs = los_pop.realise(theta['z_l'], theta['z_s'], rng)
+            macro.add_los(los_kwargs)
 
         if config['substructure']:
             subhalos = sub_pop.realise(theta_E, theta['z_l'], rng)
@@ -343,6 +345,7 @@ def main():
     config_path = Path(__file__).parent.parent / 'config.yaml'
     with open(config_path, encoding='utf-8') as f:
         cfg = yaml.safe_load(f)
+    validate_config(cfg)
 
     n_total = args.n_systems or cfg['simulation']['n_systems']
     outputs_dir = Path(__file__).parent.parent / 'outputs'
@@ -377,7 +380,7 @@ def main():
             R_sim_fs = data['R_fold']
         else:
             R_sim_fs, _ = run_config(samples, {
-                "substructure": True, "los": False,
+                "substructure": True, "los": True,
                 "selection": True, "noise": True,
                 "f_sub": fs,
             }, np.random.default_rng(f_sub_rng.integers(0, 2**31)),

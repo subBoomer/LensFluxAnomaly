@@ -12,7 +12,10 @@ class MacroLens:
     def __init__(self):
         self._model = LensModel(['SIE', 'SHEAR'])
         self._solver = LensEquationSolver(self._model)
+        self._macro_model = LensModel(['SIE', 'SHEAR'])
+        self._macro_solver = LensEquationSolver(self._macro_model)
         self._kwargs_macro = []
+        self._kwargs_los = []
         self._subhalo_list = []
 
     @staticmethod
@@ -47,11 +50,34 @@ class MacroLens:
     def _rebuild_model(self):
         profiles = ['SIE', 'SHEAR']
         kwargs_all = list(self._kwargs_macro)
+        if self._kwargs_los:
+            profiles.append('CONVERGENCE')
+            profiles.append('SHEAR')
+            kwargs_all.extend(self._kwargs_los)
         for sub in self._subhalo_list:
             profiles.append('TNFW')
             kwargs_all.append(sub)
         self._model = LensModel(profiles)
         self._solver = LensEquationSolver(self._model)
+
+    def add_los(self, kwargs):
+        self._kwargs_los = []
+        if kwargs['kappa'] != 0.0:
+            self._kwargs_los.append({
+                'kappa': kwargs['kappa'],
+                'ra_0': 0.0, 'dec_0': 0.0,
+            })
+        if kwargs['gamma_1'] != 0.0 or kwargs['gamma_2'] != 0.0:
+            self._kwargs_los.append({
+                'gamma1': kwargs['gamma_1'],
+                'gamma2': kwargs['gamma_2'],
+                'ra_0': 0.0, 'dec_0': 0.0,
+            })
+        self._rebuild_model()
+
+    def clear_los(self):
+        self._kwargs_los = []
+        self._rebuild_model()
 
     def add_substructure(self, tnfw_kwargs_list):
         self._subhalo_list.extend(tnfw_kwargs_list)
@@ -64,7 +90,7 @@ class MacroLens:
     def solve(self, beta_x, beta_y, num_random=20, search_window=5):
         theta_x, theta_y = self._solver.find_bright_image(
             beta_x, beta_y,
-            self._kwargs_macro + self._subhalo_list,
+            self._kwargs_macro + self._kwargs_los + self._subhalo_list,
             min_distance=0.01,
             search_window=search_window,
             num_random=num_random,
@@ -72,7 +98,7 @@ class MacroLens:
         )
         if len(theta_x) < 4:
             return None
-        kwargs_all = self._kwargs_macro + self._subhalo_list
+        kwargs_all = self._kwargs_macro + self._kwargs_los + self._subhalo_list
         mu = self._model.magnification(theta_x, theta_y, kwargs_all)
         parity = np.array([1 if m > 0 else -1 for m in mu])
         sort_idx = np.lexsort((theta_y, theta_x))
@@ -85,15 +111,14 @@ class MacroLens:
         }
 
     def solve_macro_only(self, beta_x, beta_y):
-        fast_solver = LensEquationSolver(LensModel(['SIE', 'SHEAR']))
-        theta_x, theta_y = fast_solver.find_bright_image(
+        theta_x, theta_y = self._macro_solver.find_bright_image(
             beta_x, beta_y, self._kwargs_macro,
-            min_distance=0.01, search_window=5, num_random=5,
+            min_distance=0.01, search_window=3, num_random=3,
             initial_guess_cut=True,
         )
         if len(theta_x) < 4:
             return None
-        mu = LensModel(['SIE', 'SHEAR']).magnification(theta_x, theta_y, self._kwargs_macro)
+        mu = self._macro_model.magnification(theta_x, theta_y, self._kwargs_macro)
         parity = np.array([1 if m > 0 else -1 for m in mu])
         return {
             'theta_x': np.array(theta_x),
