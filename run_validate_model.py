@@ -2,7 +2,6 @@ import argparse, os, sys, time, numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
-
 from src.catalog_utils import build_unified_catalog
 from src.compute_rmin import compute_rmin
 from src.statistic import compute_rfold, compute_cusp_statistic
@@ -14,7 +13,6 @@ from src.selection import passes_selection
 from src.noise_model import RadioNoise
 from scipy.stats import ks_2samp, anderson_ksamp
 
-
 def sample_source_in_caustic(rng, theta_E, q, macro, max_attempts=30):
     caustic_size = theta_E * (1.0 - q) / (1.0 + q)
     scale = max(caustic_size * 0.8, 0.01)
@@ -23,9 +21,8 @@ def sample_source_in_caustic(rng, theta_E, q, macro, max_attempts=30):
         by = rng.uniform(-scale, scale)
         result = macro.solve_macro_only(bx, by)
         if result is not None and result['n_images'] == 4:
-            return bx, by, result
-    return None, None, None
-
+            return (bx, by, result)
+    return (None, None, None)
 
 def simulate_one_lenstronomy(seed, f_sub):
     rng = np.random.default_rng(seed)
@@ -33,23 +30,15 @@ def simulate_one_lenstronomy(seed, f_sub):
     sub_pop = SubhaloPopulation(f_sub=f_sub)
     los_pop = LOSPopulation()
     radio_noise = RadioNoise()
-
     theta = pop.sample(rng)
     macro = MacroLens()
-    theta_E = macro.build(
-        theta['z_l'], theta['z_s'],
-        theta['sigma_v'], theta['q'], theta['phi_lens'],
-        theta['gamma_ext'], theta['theta_gamma'],
-    )
+    theta_E = macro.build(theta['z_l'], theta['z_s'], theta['sigma_v'], theta['q'], theta['phi_lens'], theta['gamma_ext'], theta['theta_gamma'])
     los_kwargs = los_pop.realise(theta['z_l'], theta['z_s'], rng)
     macro.add_los(los_kwargs)
     bx, by, macro_result = sample_source_in_caustic(rng, theta_E, theta['q'], macro)
     if macro_result is None:
         return None
-    if not passes_selection(
-        macro_result['theta_x'], macro_result['theta_y'],
-        macro_result['mu'], theta['source_flux'], rng,
-    ):
+    if not passes_selection(macro_result['theta_x'], macro_result['theta_y'], macro_result['mu'], theta['source_flux'], rng):
         return None
     subhalos = sub_pop.realise(theta_E, theta['z_l'], rng)
     macro.add_substructure(subhalos)
@@ -64,8 +53,7 @@ def simulate_one_lenstronomy(seed, f_sub):
     parity = np.sign(mu).astype(float)
     rfold_val = compute_rfold(x, y, parity, np.abs(F_obs))
     rcusp_val = compute_cusp_statistic(x, y, parity, np.abs(F_obs))
-    return x, y, F_obs, rfold_val, rcusp_val
-
+    return (x, y, F_obs, rfold_val, rcusp_val)
 
 def simulate_batch_lenstronomy(seeds, f_sub):
     results = []
@@ -75,10 +63,8 @@ def simulate_batch_lenstronomy(seeds, f_sub):
             results.append(out)
     return results
 
-
 def tail_ratio(obs, sim, threshold=0.2):
     return float(np.mean(obs > threshold) / max(np.mean(sim > threshold), 1e-10))
-
 
 def run_comparison(obs_arr, sim_arr, label):
     if len(obs_arr) < 3 or len(sim_arr) < 10:
@@ -86,7 +72,7 @@ def run_comparison(obs_arr, sim_arr, label):
         return
     ks = ks_2samp(obs_arr, sim_arr)
     try:
-        ad = anderson_ksamp([obs_arr.tolist(), sim_arr.tolist()])
+        ad = anderson_ksamp([obs_arr.tolist(), sim_arr.tolist()], variant='midrank', method='asymptotic')
         ad_sig = ad.significance_level
     except Exception:
         ad_sig = None
@@ -100,7 +86,6 @@ def run_comparison(obs_arr, sim_arr, label):
     print(f'    Tail ratio T: {T:.3f}')
     return {'ks': ks, 'ad_sig': ad_sig, 'T': T, 'obs': obs_arr, 'sim': sim_arr}
 
-
 def main():
     parser = argparse.ArgumentParser(description='Phase B: cross-validate R_min with full lenstronomy pipeline')
     parser.add_argument('--n-sim', type=int, default=2000, help='Number of lenstronomy realisations')
@@ -112,17 +97,14 @@ def main():
     parser.add_argument('--quick', action='store_true', help='Quick test: 100 draws')
     parser.add_argument('--force', action='store_true', help='Re-run even if results exist')
     args = parser.parse_args()
-
     if args.quick:
         args.n_sim = 100
         args.n_perturb = 10000
-
     print('=' * 60)
     print('Phase B: lenstronomy cross-validation for R_min')
     print('=' * 60)
-
     systems = build_unified_catalog(include_radio=True, include_optical=True, deduplicate=True)
-    obs_results, obs_rfold_list, obs_rcusp_list = [], [], []
+    obs_results, obs_rfold_list, obs_rcusp_list = ([], [], [])
     for s in systems:
         rmin = compute_rmin(s['x_arcsec'], s['y_arcsec'], s['fluxes'], args.delta_r)
         if rmin is not None:
@@ -139,7 +121,6 @@ def main():
     obs_rfold_arr = np.array(obs_rfold_list)
     obs_rcusp_arr = np.array(obs_rcusp_list)
     print(f'\nObserved catalog: {len(systems)} systems, {len(obs_arr)} valid R_min, {len(obs_rfold_arr)} valid R_fold, {len(obs_rcusp_arr)} valid R_cusp')
-
     print(f'\nGenerating {args.n_sim} lenstronomy realisations (f_sub={args.f_sub})...')
     t0 = time.perf_counter()
     seeds = list(range(args.seed, args.seed + args.n_sim))
@@ -149,8 +130,7 @@ def main():
         batch_size = max(1, args.n_sim // (n_workers * 4))
         batches = [seeds[i:i + batch_size] for i in range(0, len(seeds), batch_size)]
         with ProcessPoolExecutor(max_workers=n_workers) as pool:
-            fut_to_idx = {pool.submit(simulate_batch_lenstronomy, b, args.f_sub): i
-                          for i, b in enumerate(batches)}
+            fut_to_idx = {pool.submit(simulate_batch_lenstronomy, b, args.f_sub): i for i, b in enumerate(batches)}
             done = 0
             for fut in as_completed(fut_to_idx):
                 batch_results = fut.result()
@@ -164,10 +144,9 @@ def main():
             if out is not None:
                 lens_results.append(out)
             if (i + 1) % 100 == 0:
-                print(f'  {i+1}/{args.n_sim} ({len(lens_results)} quads)', flush=True)
+                print(f'  {i + 1}/{args.n_sim} ({len(lens_results)} quads)', flush=True)
     dt = time.perf_counter() - t0
-
-    lens_rmin, lens_rfold, lens_rcusp = [], [], []
+    lens_rmin, lens_rfold, lens_rcusp = ([], [], [])
     for result in lens_results:
         x, y, F, rf, rc = result
         r = compute_rmin(x, y, F, args.delta_r)
@@ -181,17 +160,14 @@ def main():
     lens_rfold = np.array(lens_rfold)
     lens_rcusp = np.array(lens_rcusp)
     print(f'  Done in {dt:.1f}s: {len(lens_results)} quads, {len(lens_arr)} valid R_min, {len(lens_rfold)} valid R_fold, {len(lens_rcusp)} valid R_cusp')
-
     print(f'\nGenerating {args.n_perturb} simple perturbation model realisations...')
     t0 = time.perf_counter()
     model = SimplePerturbationModel()
     sim_arr = model.sample(args.n_perturb, seed=args.seed + 9999)
     print(f'  Done in {time.perf_counter() - t0:.1f}s: {len(sim_arr)} valid')
-
     print('\n' + '=' * 60)
     print('Comparisons')
     print('=' * 60)
-
     c1 = run_comparison(obs_arr, lens_arr, '1. R_min: Observed vs lenstronomy (SIE+TNFW+LOS)')
     c2 = run_comparison(obs_arr, sim_arr, '2. R_min: Observed vs simple perturbation')
     c3 = run_comparison(lens_arr, sim_arr, '3. R_min: Lenstronomy vs simple perturbation')
@@ -199,19 +175,13 @@ def main():
         c4 = run_comparison(obs_rfold_arr, lens_rfold, '4. R_fold: Observed vs lenstronomy')
     if len(obs_rcusp_arr) > 0 and len(lens_rcusp) > 0:
         c5 = run_comparison(obs_rcusp_arr, lens_rcusp, '5. R_cusp: Observed vs lenstronomy')
-
     try:
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         bins = np.linspace(0, 0.6, 61)
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
-        for ax, sim, obs, title, lbl in [
-            (axes[0], lens_arr, obs_arr, f'Lenstronomy vs Obs\nN_obs={len(obs_arr)} N_sim={len(lens_arr)}', 'Observed'),
-            (axes[1], sim_arr, obs_arr, f'Simple vs Obs\nN_obs={len(obs_arr)} N_sim={len(sim_arr)}', 'Observed'),
-            (axes[2], sim_arr, lens_arr, f'Lenstronomy vs Simple\nN_lens={len(lens_arr)} N_sim={len(sim_arr)}', 'Lenstronomy'),
-        ]:
+        for ax, sim, obs, title, lbl in [(axes[0], lens_arr, obs_arr, f'Lenstronomy vs Obs\nN_obs={len(obs_arr)} N_sim={len(lens_arr)}', 'Observed'), (axes[1], sim_arr, obs_arr, f'Simple vs Obs\nN_obs={len(obs_arr)} N_sim={len(sim_arr)}', 'Observed'), (axes[2], sim_arr, lens_arr, f'Lenstronomy vs Simple\nN_lens={len(lens_arr)} N_sim={len(sim_arr)}', 'Lenstronomy')]:
             ax.hist(sim, bins=bins, density=True, alpha=0.6, color='gray', label='Simulated')
             for r in obs:
                 ax.axvline(r, color='red', alpha=0.7, linewidth=1.2, label=lbl if r == obs[0] else '')
@@ -219,7 +189,6 @@ def main():
             ax.set_ylabel('Density')
             ax.set_title(title)
             ax.legend()
-
         plt.tight_layout()
         out = Path('outputs/phase_b_validation.png')
         fig.savefig(str(out), dpi=150)
@@ -227,19 +196,8 @@ def main():
         plt.close(fig)
     except Exception as e:
         print(f'\nPlot skipped: {e}')
-
     result_path = Path('outputs/phase_b_validation.npz')
-    np.savez(result_path,
-             obs_rmin=obs_arr,
-             obs_rfold=obs_rfold_arr,
-             obs_rcusp=obs_rcusp_arr,
-             lenstronomy_rmin=lens_arr,
-             lenstronomy_rfold=lens_rfold,
-             lenstronomy_rcusp=lens_rcusp,
-             simple_rmin=sim_arr,
-             )
+    np.savez(result_path, obs_rmin=obs_arr, obs_rfold=obs_rfold_arr, obs_rcusp=obs_rcusp_arr, lenstronomy_rmin=lens_arr, lenstronomy_rfold=lens_rfold, lenstronomy_rcusp=lens_rcusp, simple_rmin=sim_arr)
     print(f'Results saved: {result_path}')
-
-
 if __name__ == '__main__':
     main()
