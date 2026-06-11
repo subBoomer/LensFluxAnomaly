@@ -11,6 +11,9 @@ data/catalogs/
 dist/
 build/
 checkpoint.npz
+*.aux
+*.out
+texput.*
 *.log
 .DS_Store
 Thumbs.db
