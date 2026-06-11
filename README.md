@@ -1,5 +1,7 @@
 # LensFluxAnomaly
 
+[![DOI](https://zenodo.org/badge/1262982169.svg)](https://doi.org/10.5281/zenodo.20601242)
+
 **Forward-modeling analysis of flux-ratio anomalies in 19 quadruple gravitational lenses.**
 
 A reproducible framework that tests whether observed flux-ratio asymmetries in quad lenses deviate from the minimal LCDM expectation, using three statistics (R_min, R_fold, R_cusp), two forward models (simple perturbation + lenstronomy SIE+TNFW+LOS), and calibrated significance testing.
